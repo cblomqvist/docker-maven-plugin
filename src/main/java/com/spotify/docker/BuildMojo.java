@@ -127,6 +127,10 @@ public class BuildMojo extends AbstractDockerMojo {
   @Parameter(property = "noCache", defaultValue = "false")
   private boolean noCache;
 
+  /** Set to false to pass the `--rm` flag to the Docker daemon when building an image. */
+  @Parameter(property = "rm", defaultValue = "true")
+  private boolean rm;
+
   /** Flag to push image after it is built. Defaults to false. */
   @Parameter(property = "pushImage", defaultValue = "false")
   private boolean pushImage;
@@ -271,6 +275,10 @@ public class BuildMojo extends AbstractDockerMojo {
     return forceTags;
   }
 
+  public boolean isSkipDockerBuild() {
+    return skipDockerBuild;
+  }
+
   @Override
   protected void execute(final DockerClient docker)
       throws MojoExecutionException, GitAPIException, IOException, DockerException,
@@ -356,11 +364,12 @@ public class BuildMojo extends AbstractDockerMojo {
 
     // Push specific tags specified in pom rather than all images
     if (pushImageTag) {
-      pushImageTag(docker, imageName, imageTags, getLog());
+      pushImageTag(docker, imageName, imageTags, getLog(), isSkipDockerPush());
     }
 
     if (pushImage) {
-      pushImage(docker, imageName, getLog(), buildInfo, getRetryPushCount(), getRetryPushTimeout());
+      pushImage(docker, imageName, getLog(), buildInfo, getRetryPushCount(), getRetryPushTimeout(),
+          isSkipDockerPush());
     }
 
     // Write image info file
@@ -598,7 +607,9 @@ public class BuildMojo extends AbstractDockerMojo {
     }
 
     for (final String file : filesToAdd) {
-      commands.add(String.format("ADD %s %s", file, normalizeDest(file)));
+      // The dollar sign in files has to be escaped because docker interprets it as variable
+      commands.add(
+              String.format("ADD %s %s", file.replaceAll("\\$", "\\\\\\$"), normalizeDest(file)));
     }
 
     if (runList != null && !runList.isEmpty()) {
@@ -792,10 +803,15 @@ public class BuildMojo extends AbstractDockerMojo {
     if (noCache) {
       buildParams.add(DockerClient.BuildParam.noCache());
     }
+    if (!rm) {
+        buildParams.add(DockerClient.BuildParam.rm(false));
+      }
     if (!buildArgs.isEmpty()) {
       buildParams.add(DockerClient.BuildParam.create("buildargs", 
         URLEncoder.encode(OBJECT_MAPPER.writeValueAsString(buildArgs), "UTF-8")));
     }
     return buildParams.toArray(new DockerClient.BuildParam[buildParams.size()]);
   }
+
+
 }

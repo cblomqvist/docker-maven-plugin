@@ -53,13 +53,17 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
+import static com.spotify.docker.TestUtils.getPom;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.spy;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class BuildMojoTest extends AbstractMojoTestCase {
 
@@ -69,6 +73,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
       "ENV FOO BAR",
       "WORKDIR /opt/app",
       "ADD resources/parent/child/child.xml resources/parent/child/",
+      "ADD resources/parent/escapedollar\\$sign.xml resources/parent/",
       "ADD resources/parent/parent.xml resources/parent/",
       "ADD copy2.json .",
       "RUN ln -s /a /b",
@@ -85,6 +90,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
       "ENV FOO BAR",
       "WORKDIR /opt/app",
       "ADD resources/parent/child/child.xml resources/parent/child/",
+      "ADD resources/parent/escapedollar\\$sign.xml resources/parent/",
       "ADD resources/parent/parent.xml resources/parent/",
       "ADD copy2.json .",
       "RUN ln -s /a /b",
@@ -104,6 +110,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
       "ENV FOO BAR",
       "WORKDIR /opt/app",
       "ADD resources/parent/child/child.xml resources/parent/child/",
+      "ADD resources/parent/escapedollar\\$sign.xml resources/parent/",
       "ADD resources/parent/parent.xml resources/parent/",
       "ADD copy2.json .",
       "RUN ln -s /a /b",
@@ -122,6 +129,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
           "ENV FOO BAR",
           "WORKDIR /opt/app",
           "ADD resources/parent/child/child.xml resources/parent/child/",
+          "ADD resources/parent/escapedollar\\$sign.xml resources/parent/",
           "ADD resources/parent/parent.xml resources/parent/",
           "ADD copy2.json .",
           "RUN ln -s /a /b &&\\",
@@ -153,9 +161,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
 
   //tests the docker volumes feature
   public void testBuildWithDockerVolumes() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-docker-volumes.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-docker-volumes.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -170,9 +176,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithDockerLabels() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-docker-labels.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-docker-labels.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -187,9 +191,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithDockerDirectory() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-docker-directory.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-docker-directory.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -201,9 +203,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithDockerDirectoryWithArgs() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-docker-directory-args.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-docker-directory-args.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -217,9 +217,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithPush() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-push.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -231,9 +229,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithPushCompositeImageNameNoTag() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push-composite.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-push-composite.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -245,9 +241,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testDigestWrittenOnBuildWithPush() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-push.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -281,9 +275,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testDigestWrittenOnBuildWithPushAndExplicitTag() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push-with-tag.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-push-with-tag.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -317,9 +309,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithPull() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-pull.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-pull.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -330,9 +320,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithPushTag() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push-tag.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-push-tag.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -344,9 +332,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithMultiplePushTag() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push-tags.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-push-tags.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -360,7 +346,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithMultiplePushTagButNoTagsSpecified() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push-tags-no-tags-provided.xml");
+    final File pom = getPom("/pom-build-push-tags-no-tags-provided.xml");
     assertNotNull("Null pom.xml", pom);
     assertTrue("pom.xml does not exist", pom.exists());
 
@@ -380,7 +366,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithMultipleCompositePushTag() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-push-tags-composite.xml");
+    final File pom = getPom("/pom-build-push-tags-composite.xml");
     assertNotNull("Null pom.xml", pom);
     assertTrue("pom.xml does not exist", pom.exists());
 
@@ -397,9 +383,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithInvalidPushTag() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-missing-push-tags.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-missing-push-tags.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -417,9 +401,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithGeneratedDockerfile() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-generated-dockerfile.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-generated-dockerfile.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -433,10 +415,8 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithGeneratedDockerfileWithSquashCommands() throws Exception {
-      final File pom = getTestFile(
-          "src/test/resources/pom-build-generated-dockerfile-with-squash-commands.xml");
-      assertNotNull("Null pom.xml", pom);
-      assertTrue("pom.xml does not exist", pom.exists());
+      final File pom = getPom(
+          "/pom-build-generated-dockerfile-with-squash-commands.xml");
 
       final BuildMojo mojo = setupMojo(pom);
       final DockerClient docker = mock(DockerClient.class);
@@ -450,7 +430,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
     }
 
   public void testBuildGeneratedDockerFile_CopiesEntireDirectory() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-copy-entire-directory.xml");
+    final File pom = getPom("/pom-build-copy-entire-directory.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -473,9 +453,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithProfile() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-with-profile.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-with-profile.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -491,9 +469,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testBuildWithInvalidProfile() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-with-invalid-profile.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-with-invalid-profile.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -513,9 +489,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
    * "image_info.json".
    */
   public void testBuildWithTagInfoFileInSameDirectory() throws Exception {
-    final File pom = getTestFile("src/test/resources/pom-build-with-tagInfoFile.xml");
-    assertNotNull("Null pom.xml", pom);
-    assertTrue("pom.xml does not exist", pom.exists());
+    final File pom = getPom("/pom-build-with-tagInfoFile.xml");
 
     final BuildMojo mojo = setupMojo(pom);
     final DockerClient docker = mock(DockerClient.class);
@@ -530,7 +504,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testPullOnBuild() throws Exception {
-    final BuildMojo mojo = setupMojo(getTestFile("src/test/resources/pom-build-pull-on-build.xml"));
+    final BuildMojo mojo = setupMojo(getPom("/pom-build-pull-on-build.xml"));
     final DockerClient docker = mock(DockerClient.class);
 
     mojo.execute(docker);
@@ -542,7 +516,7 @@ public class BuildMojoTest extends AbstractMojoTestCase {
   }
 
   public void testNoCache() throws Exception {
-    final BuildMojo mojo = setupMojo(getTestFile("src/test/resources/pom-build-no-cache.xml"));
+    final BuildMojo mojo = setupMojo(getPom("/pom-build-no-cache.xml"));
     final DockerClient docker = mock(DockerClient.class);
 
     mojo.execute(docker);
@@ -551,6 +525,53 @@ public class BuildMojoTest extends AbstractMojoTestCase {
         anyString(),
         any(ProgressHandler.class),
         eq(BuildParam.noCache()));
+  }
+
+  public void testRmFalse() throws Exception {
+    final BuildMojo mojo = setupMojo(getPom("/pom-build-rm-false.xml"));
+    final DockerClient docker = mock(DockerClient.class);
+
+    mojo.execute(docker);
+
+    verify(docker).build(any(Path.class),
+        anyString(),
+        any(ProgressHandler.class),
+        eq(BuildParam.rm(false)));
+  }
+
+  public void testBuildWithSkipDockerBuild() throws Exception {
+    final BuildMojo mojo = setupMojo(getPom("/pom-build-skip-build.xml"));
+    assertThat(mojo.isSkipDockerBuild()).isTrue();
+
+    final DockerClient docker = mock(DockerClient.class);
+    mojo.execute(docker);
+
+    verify(docker, never())
+        .build(any(Path.class), anyString(), any(AnsiProgressHandler.class));
+    verify(docker, never())
+        .push(anyString(), any(AnsiProgressHandler.class));
+  }
+
+  public void testBuildWithSkipDocker() throws Exception {
+    final BuildMojo mojo = setupMojo(getPom("/pom-build-skip-docker.xml"));
+    assertThat(mojo.isSkipDocker()).isTrue();
+
+    final BuildMojo mojoSpy = spy(mojo);
+    mojo.execute();
+    verify(mojoSpy, never()).execute(any(DockerClient.class));
+  }
+
+  public void testBuildWithPushTagAndSkipDockerPush() throws Exception {
+    final BuildMojo mojo = setupMojo(getPom("/pom-build-skip-push.xml"));
+    assertThat(mojo.isSkipDockerPush()).isTrue();
+
+    final DockerClient docker = mock(DockerClient.class);
+    mojo.execute(docker);
+
+    verify(docker)
+        .build(eq(Paths.get("target/docker")), eq("busybox"), any(AnsiProgressHandler.class));
+    verify(docker, never())
+        .push(anyString(), any(AnsiProgressHandler.class));
   }
 
   private BuildMojo setupMojo(final File pom) throws Exception {
@@ -606,6 +627,8 @@ public class BuildMojoTest extends AbstractMojoTestCase {
     assertFileExists("target/docker/Dockerfile");
 
     // files from resources/copy1
+    // files including a file with dollar sign because it has to be escaped inside the dockerfile
+    assertFileExists("target/docker/resources/parent/escapedollar$sign.xml");
     assertFileExists("target/docker/resources/parent/parent.xml");
     assertFileExists("target/docker/resources/parent/child/child.xml");
     assertFileDoesNotExist("target/docker/resources/parent/parent.json");
